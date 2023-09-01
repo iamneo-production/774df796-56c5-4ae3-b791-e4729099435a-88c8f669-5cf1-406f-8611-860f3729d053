@@ -1,0 +1,42 @@
+name: Build
+'on':
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+jobs:
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: >-
+            774df796-56c5-4ae3-b791-e4729099435a-88c8f669-5cf1-406f-8611-860f3729d053
+          SONAR_TOKEN: 811c9a490983734401ba4e491eaefc8bfa7281de
+      - name: Trigger API
+        if: always()
+        env:
+          API_URL: '${{ secrets.API_URL }}'
+          API_SECRET: '${{ secrets.API_SECRET }}'
+        run: >
+          REPO_NAME=$(echo "${GITHUB_REPOSITORY}" | cut -d '/' -f 2)
+
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+
+          GITHUB_USERNAME=$GITHUB_ACTOR
+
+          API_PAYLOAD="{ \"repo_id\": \"$REPO_NAME\", \"branch_name\":
+          \"$BRANCH_NAME\", \"github_username\": \"$GITHUB_USERNAME\",
+          \"api_secret\": \"$API_SECRET\" }"
+
+          curl -X POST -H "Content-Type: application/json" -d "$API_PAYLOAD"
+          $API_URL
